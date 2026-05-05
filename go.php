@@ -27,9 +27,10 @@ if (isset($_GET['lng'])) {
     if (count(core::$lng_list) > 1) {
         echo '<p><h3>' . $lng['language_select'] . '</h3>';
         foreach (core::$lng_list as $key => $val) {
-            echo '<div><input type="radio" value="' . $key . '" name="setlng" ' . ($key == core::$lng_iso ? 'checked="checked"' : '') . '/>&#160;' .
-                 (file_exists('images/flags/' . $key . '.gif') ? '<img src="images/flags/' . $key . '.gif" alt=""/>&#160;' : '') .
-                 $val .
+            echo '<div><input type="radio" value="' . $key . '" name="setlng" ' . ($key == core::$lng_iso ? 'checked="checked"' : '') . '/>'.
+                 '&#160;' .
+                 (file_exists('images/flags/' . $key . '.gif') ? '<img src="images/flags/' . $key . '.gif" alt=""/>' : '') .
+                 htmlspecialchars($val) .
                  ($key == core::$system_set['lng'] ? ' <small class="red">[' . $lng['default'] . ']</small>' : '') .
                  '</div>';
         }
@@ -65,11 +66,19 @@ if (isset($_GET['lng'])) {
     Редирект по рекламной ссылке
     -----------------------------------------------------------------
     */
-    $req = mysql_query("SELECT * FROM `cms_ads` WHERE `id` = '$id'");
-    if (mysql_num_rows($req)) {
-        $res = mysql_fetch_assoc($req);
+    $stmt = $conn->prepare("SELECT * FROM `cms_ads` WHERE `id` = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $res = $result->fetch_assoc();
         $count_link = $res['count'] + 1;
-        mysql_query("UPDATE `cms_ads` SET `count` = '$count_link'  WHERE `id` = '$id'");
+        
+        $stmt = $conn->prepare("UPDATE `cms_ads` SET `count` = ? WHERE `id` = ?");
+        $stmt->bind_param("ii", $count_link, $id);
+        $stmt->execute();
+        
         header('Location: ' . $res['link']);
     } else {
         header("Location: http://johncms.com/index.php?act=404");
